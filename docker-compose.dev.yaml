@@ -1,0 +1,57 @@
+version: "3"
+
+networks:
+  rochwin-network:
+    driver: bridge
+
+services:
+
+  backend:
+    container_name: ${PROJECT_NAME}-backend
+    hostname: ${PROJECT_NAME}-backend
+    build:
+      context: ./
+      dockerfile: .docker/dev/backend/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - ${PORT:-8000}:8000
+    volumes:
+      - ./:/home/app/backend
+      - static_volume:/home/app/backend/static
+      - media_volume:/home/app/backend/media
+    security_opt:
+      - seccomp:unconfined
+    tty: true
+    restart: unless-stopped
+    networks:
+      - rochwin-network
+    depends_on:
+      - db
+
+  db:
+    container_name: ${PROJECT_NAME}-db
+    hostname: ${PROJECT_NAME}-db-host
+    image: postgres:15-alpine
+    env_file:
+      - .docker/dev/postgresql/config.ini
+    ports:
+      - ${POSTGRESQL_PORT:-5432}:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - rochwin-network
+    tty: true
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+
+volumes:
+  static_volume:
+  media_volume:
+  postgres_data:
+    driver: local
